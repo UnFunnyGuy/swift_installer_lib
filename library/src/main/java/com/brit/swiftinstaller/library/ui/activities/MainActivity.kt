@@ -27,10 +27,7 @@ import android.content.pm.PackageManager
 import android.graphics.PorterDuff
 import android.graphics.drawable.LayerDrawable
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.SystemClock
+import android.os.*
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ClickableSpan
@@ -56,6 +53,7 @@ import kotlinx.android.synthetic.main.content_main.*
 import kotlinx.android.synthetic.main.popup_menu.view.*
 import kotlinx.android.synthetic.main.synergy_card_install.*
 import org.jetbrains.anko.doAsync
+import java.io.File
 
 
 class MainActivity : ThemeActivity() {
@@ -72,17 +70,22 @@ class MainActivity : ThemeActivity() {
         setContentView(R.layout.activity_main)
         extraApps = swift.extrasHandler.appExtras.keys
 
+        if (Utils.isSynergyCompatibleDevice()) {
+            File(Environment.getExternalStorageDirectory(), ".swift").deleteRecursively()
+        }
         ChangelogHandler.showChangelog(this, true)
 
         update_checker_spinner.indeterminateDrawable.setColorFilter(swift.selection.accentColor,
                 PorterDuff.Mode.SRC_ATOP)
-         if(Utils.isSynergyInstalled(this, "projekt.samsung.theme.compiler") && Utils.isSynergyCompatibleDevice()) {
-             main_toolbar.subtitle = getString(R.string.main_toolbar_synergy_mode)
-         } else if (ShellUtils.isRootAccessAvailable) {
-             main_toolbar.subtitle = (getString(R.string.main_toolbar_root_mode))
-         } else {
-             main_toolbar.subtitle = (getString(R.string.main_toolbar_rootless_mode))
-         }
+        if (getProperty("ro.config.knox", "def") != "def") {
+            if (Utils.isSynergyInstalled(this, "projekt.samsung.theme.compiler") && Utils.isSynergyCompatibleDevice()) {
+                main_toolbar.subtitle = getString(R.string.main_toolbar_synergy_mode)
+            } else if (ShellUtils.isRootAccessAvailable) {
+                main_toolbar.subtitle = (getString(R.string.main_toolbar_root_mode))
+            } else {
+                main_toolbar.subtitle = (getString(R.string.main_toolbar_rootless_mode))
+            }
+        }
 
         doAsync {
             enableAllOverlays()
@@ -311,7 +314,7 @@ class MainActivity : ThemeActivity() {
                 title = getString(R.string.swift_app_name)
 
                 val pi = packageManager.getPackageInfo(packageName, 0)
-                val m = getString(R.string.swift_installer_version) + " ${pi.versionName}" + " (${pi.getVersionCode()})" + "\n\n" +
+                val m = getString(R.string.swift_installer_version) + " ${pi.versionName}" + "\n\n" +
                         getString(R.string.swift_installer_lib_version) + " ${BuildConfig.VERSION_NAME}" +  " (${BuildConfig.VERSION_CODE})"  + "\n\n" +
                         getString(R.string.github)
                 message = Utils.createLinkedString(this@MainActivity, m, getString(R.string.github), getString(R.string.link_installer_source))
